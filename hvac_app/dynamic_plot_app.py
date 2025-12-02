@@ -313,7 +313,7 @@ class MultiFluidDynamicPlot:
                 x=1.02,
                 font=dict(color="black", size=12)
             ),
-            margin=dict(r=200),
+            margin=dict(r=350),
             annotations=annotations
         )
 
