@@ -154,7 +154,7 @@ class MultiFluidDynamicPlot:
         # Display as table
         if table_data:
             df_table = pd.DataFrame(table_data)
-            st.dataframe(df_table, width='stretch')
+            st.dataframe(df_table, use_container_width=True)
         else:
             st.info("No raw data counts available.")
 
@@ -317,8 +317,7 @@ class MultiFluidDynamicPlot:
             annotations=annotations
         )
 
-        st.plotly_chart(fig, width='stretch',
-                    config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
+        st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
 
         # --------------------- Remove Points / Undo --------------------- #
         st.write("### Remove Points")
