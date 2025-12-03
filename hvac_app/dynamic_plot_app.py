@@ -5,7 +5,7 @@ import streamlit as st
 import plotly.graph_objects as go
 from hvac_app import preprocessing_app, cop_calculation_app, regression_app
 from hvac_app.cop_calculation_app import cop_percentage_change
-st.set_page_config(layout="wide") 
+#st.set_page_config(layout="wide") 
 
 class MultiFluidDynamicPlot:
 
