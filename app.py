@@ -1,5 +1,13 @@
 # app_streamlit.py
 import streamlit as st
+
+# Must be first Streamlit command
+st.set_page_config(
+    page_title="HVAC Performance Analysis",
+    layout="wide",
+    page_icon="htms_logo.jpg"
+)
+
 import pandas as pd
 from pathlib import Path
 import tempfile
@@ -14,12 +22,6 @@ if 'analysis_run' not in st.session_state:
 if 'true_original_data' not in st.session_state:
     st.session_state.true_original_data = {}
 
-# Set page title and favicon (browser tab / URL bar)
-st.set_page_config(
-    page_title="HVAC Performance Analysis",
-    layout="wide",
-    page_icon="htms_logo.jpg"
-)
 
 col1, col2 = st.columns([5,1])
 with col1:
