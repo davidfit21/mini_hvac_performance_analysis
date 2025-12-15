@@ -1,27 +1,29 @@
 # app_streamlit.py
 import streamlit as st
-
-# Must be first Streamlit command
-st.set_page_config(
-    page_title="HVAC Performance Analysis",
-    layout="wide",
-    page_icon="htms_logo.jpg"
-)
-
 import pandas as pd
 from pathlib import Path
 import tempfile
 import numpy as np
 from hvac_app import preprocessing_app, cop_calculation_app, regression_app
 from hvac_app.dynamic_plot_app import MultiFluidDynamicPlot
-from hvac_app.lstm_app import enhance_fluid_data
+from hvac_app.enhance_app import align_to_match_baseline
 
 # ---------------- Session State ---------------- #
 if 'analysis_run' not in st.session_state:
     st.session_state.analysis_run = False
 if 'true_original_data' not in st.session_state:
     st.session_state.true_original_data = {}
+if 'aligned_data' not in st.session_state:
+    st.session_state.aligned_data = {}
+if 'current_view' not in st.session_state:
+    st.session_state.current_view = "original"
 
+# Set page title and favicon (browser tab / URL bar)
+st.set_page_config(
+    page_title="HVAC Performance Analysis",
+    layout="wide",
+    page_icon="htms_logo.jpg"
+)
 
 col1, col2 = st.columns([5,1])
 with col1:
@@ -117,11 +119,9 @@ def analyze_bins(grouped, df_raw, st_container=None):
         X = np.array(X)
         y = cop_grouped_smooth['cop_15min_smooth'].values
         
-        # Ensure numeric types
         X = pd.to_numeric(X, errors='coerce')
         y = pd.to_numeric(y, errors='coerce')
         
-        # Remove any NaN values
         mask = ~(np.isnan(X) | np.isnan(y))
         X = X[mask]
         y = y[mask]
@@ -153,285 +153,173 @@ def analyze_bins(grouped, df_raw, st_container=None):
     return bin_results
 
 
-def enhancement_phase():
-    st.subheader("Data Enhancement using LSTM")
+# ---------------- Phase 2 ---------------- #
+def align_phase():
+    st.subheader("Data Enhancement using Alignment")
     
-    if 'results_dict' not in st.session_state:
-        st.warning("Please run Phase 1 analysis first to enhance fluids.")
+    if 'results_dict' not in st.session_state or 'baseline_name' not in st.session_state:
+        st.warning("Please run Phase 1 analysis first to load fluid data.")
         return
+
+    base_fluid_names = list(st.session_state.true_original_data.keys())
     
-    #st.session_state.removed_points = {}
-    #st.session_state.removed_history = {}
-    
-    fluid_names = list(st.session_state.results_dict.keys())
-    base_fluid_names = [name for name in fluid_names if "Enhanced" not in name]
-    
-    # Fluid selection
-    selected_fluid = st.selectbox(
-        "Select fluid to enhance:",
-        options=base_fluid_names
+    # 1. Select the baseline fluid to match its slope
+    baseline_fluid = st.selectbox(
+        "1. Select the **Baseline Fluid** to match its regression slope:",
+        options=[st.session_state.baseline_name] if st.session_state.baseline_name in base_fluid_names else base_fluid_names,
+        index=0 if st.session_state.baseline_name in base_fluid_names else 0
     )
     
-    # Check if this fluid is already enhanced
-    is_currently_enhanced = st.session_state.results_dict.get(selected_fluid, {}).get('is_enhanced', False)
-    
-    # Enhancement parameters
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        percent_points = st.slider(
-            "Percent of points to generate:",
-            min_value=1,
-            max_value=1000,
-            value=100,
-            step=1
-        )
-    
-    fluid_data = st.session_state.results_dict.get(selected_fluid, {})
-    original_points = len(fluid_data.get('grouped', []))
-    requested_points = int(original_points * percent_points / 100)
-    
-    # Show helpful warnings
-    validation_ok = True
-    if original_points > 0 and requested_points == 0:
-        min_percent = max(1, (100 // original_points) + 1)
-        st.error(f"❌ Cannot enhance: {percent_points}% of {original_points} points = 0 points. Try at least {min_percent}%.")
-        validation_ok = False
-    
-    if original_points < 2:
-        st.error(f"❌ Cannot enhance: Need at least 2 data points, but {selected_fluid} only has {original_points}.")
-        validation_ok = False
-    
-    with col2:
-        # Only enable if validation passes
-        if validation_ok and not is_currently_enhanced:
-            enhance_button = st.button("🎯 Generate Enhanced Data", type="primary")
-        elif validation_ok and is_currently_enhanced:
-            enhance_button = st.button("🔄 Re-generate Enhanced Data", type="primary")
-        else:
-            enhance_button = False
-            if is_currently_enhanced:
-                st.button("🔄 Re-generate Enhanced Data", disabled=True)
-            else:
-                st.button("🎯 Generate Enhanced Data", disabled=True)
-    
-    with col3:
-        if is_currently_enhanced:
-            undo_button = st.button("⏪ Remove Enhancement", type="secondary")
-        else:
-        # Show why no undo is available
-            if selected_fluid in st.session_state.results_dict:
-                st.write("📝 No enhancement to remove")
-            else:
-                st.write("⚠️ No fluid selected")
-
-    if 'undo_button' in locals() and undo_button and selected_fluid:
-        if selected_fluid in st.session_state.true_original_data:
-            # Restore from true original data
-            true_original = st.session_state.true_original_data[selected_fluid]
-            st.session_state.results_dict[selected_fluid] = {
-            "grouped": true_original['grouped'].copy(),
-            "df_raw": true_original['df_raw'].copy(),
-            "bin_results": analyze_bins(true_original['grouped'].copy(), true_original['df_raw'])[CHOSEN_BIN_SIZE],
-            "is_enhanced": False 
-                }
-            # Also remove any "Enhanced" version if it exists
-            enhanced_name = f"{selected_fluid} Enhanced"
-            if enhanced_name in st.session_state.results_dict:
-                del st.session_state.results_dict[enhanced_name]
+    # 2. Select the product fluid to be squished
+    product_options = [name for name in base_fluid_names if name != baseline_fluid]
+    if not product_options:
+        st.error("Please upload at least two fluids in Phase 1 to perform comparison.")
+        return
         
-            st.success(f"✅ Enhancement removed from {selected_fluid}")
-            st.rerun()
-        else:
-            st.error("Cannot undo - true original data not found")
-
-    # Handle enhancement
-    if enhance_button and selected_fluid and original_points >= 2 and requested_points > 0:
-        with st.spinner(f"Generating enhanced data for {selected_fluid}..."):
-            try:
-                fluid_data = st.session_state.results_dict[selected_fluid]
-                
-                # ALWAYS use the TRUE ORIGINAL data (not enhanced versions)
-                if 'true_original_data' in st.session_state:
-                    true_original_data = st.session_state.true_original_data.get(selected_fluid)
-                    if true_original_data:
-                        grouped_original = true_original_data.get('grouped')
-                        df_raw = true_original_data.get('df_raw')
-                    else:
-                        # Fallback to current data and store as true original
-                        grouped_original = fluid_data.get('grouped')
-                        df_raw = fluid_data.get('df_raw')
-                        st.session_state.true_original_data[selected_fluid] = {
-                            "grouped": grouped_original.copy(),
-                            "df_raw": df_raw.copy()
-                        }
-                else:
-                    # First time - store true original separately
-                    grouped_original = fluid_data.get('grouped')
-                    df_raw = fluid_data.get('df_raw')
-                    st.session_state.true_original_data = {
-                        selected_fluid: {
-                            "grouped": grouped_original.copy(),
-                            "df_raw": df_raw.copy()
-                        }
-                    }
-                
-                if grouped_original is None or grouped_original.empty:
-                    st.error(f"No data available for {selected_fluid}")
-                    return
-                
-                # Ensure clean numeric data
-                clean_grouped = grouped_original.copy()
-                
-                # Force convert to numeric and handle any conversion issues
-                clean_grouped['avg_oat'] = pd.to_numeric(clean_grouped['avg_oat'], errors='coerce')
-                clean_grouped['cop_15min_smooth'] = pd.to_numeric(clean_grouped['cop_15min_smooth'], errors='coerce')
-                
-                # Remove any rows with non-numeric values
-                clean_grouped = clean_grouped.dropna(subset=['avg_oat', 'cop_15min_smooth'])
-                
-                # Ensure the LSTM has the column it expects with proper numeric type
-                clean_grouped['cop_15min'] = pd.to_numeric(clean_grouped['cop_15min_smooth'], errors='coerce')
-                
-                # Final validation
-                if clean_grouped['cop_15min'].dtype != 'float64':
-                    st.error(f"COP data is still not numeric! Current dtype: {clean_grouped['cop_15min'].dtype}")
-                    return
-                if len(clean_grouped) < 2:
-                    st.error("Not enough valid data points after cleaning")
-                    return
-                
-                # Generate enhanced data using CLEAN data
-                enhanced_grouped_data, synthetic_df = enhance_fluid_data(
-                    clean_grouped,
-                    percent_points=percent_points
-                )
-                
-                if enhanced_grouped_data is None or enhanced_grouped_data.empty:
-                    st.error("Enhancement failed - no data generated")
-                    return
-                
-                # Keep only required columns
-                required_cols = ['time_bin_mark', 'cop_15min_smooth', 'avg_oat']
-                enhanced_grouped_data = enhanced_grouped_data[required_cols]
-
-                # Ensure numeric data types in enhanced data
-                enhanced_grouped_data['avg_oat'] = pd.to_numeric(enhanced_grouped_data['avg_oat'], errors='coerce')
-                enhanced_grouped_data['cop_15min_smooth'] = pd.to_numeric(enhanced_grouped_data['cop_15min_smooth'], errors='coerce')
-                enhanced_grouped_data = enhanced_grouped_data.dropna(subset=['avg_oat', 'cop_15min_smooth'])
-
-                # Analyze enhanced bins
-                enhanced_results = analyze_bins(
-                    enhanced_grouped_data.copy(),
-                    df_raw,
-                    f"{selected_fluid} Enhanced"
-                )
-                
-                # Replace the original fluid with enhanced version
-                st.session_state.results_dict[selected_fluid] = {
-                    "bin_results": enhanced_results[CHOSEN_BIN_SIZE],
-                    "grouped": enhanced_grouped_data,
-                    "df_raw": df_raw,
-                    "is_enhanced": True,  # Flag to track enhancement
-                    "original_data": fluid_data  # Store original for undo
-                }
-
-                st.success(f"✅ {selected_fluid} successfully enhanced! {len(synthetic_df)} synthetic points added.")
-                st.rerun()
-
-                # Show enhancement stats
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("Original Points", len(grouped_original))
-                with col2:
-                    st.metric("Synthetic Points", len(synthetic_df))
-                with col3:
-                    st.metric("Total Points", len(enhanced_grouped_data))
-                
-            except Exception as e:
-                st.error(f"Enhancement failed: {str(e)}")
-                import traceback
-                st.code(traceback.format_exc())
+    product_fluid = st.selectbox(
+        "2. Select the **Product Fluid** to apply Alignment to:",
+        options=product_options
+    )
     
-    # Enhancement status
-    st.subheader("Enhancement Status")
-    enhanced_fluids = [name for name in base_fluid_names 
-                      if st.session_state.results_dict.get(name, {}).get('is_enhanced')]
-    
-    if enhanced_fluids:
-        st.write("**Enhanced Fluids:**")
-        for fluid in enhanced_fluids:
-            enhanced_data = st.session_state.results_dict[fluid]
-            original_points = len(enhanced_data.get('original_data', {}).get('grouped', []))
-            enhanced_points = len(enhanced_data.get('grouped', []))
-            st.write(f"• **{fluid}**: {original_points} original points → {enhanced_points} total points")
-    else:
-        st.info("No fluids are currently enhanced")
-    
-    # Show the plot with current data (enhanced or original)
-    if 'results_dict' in st.session_state:
+    aligned_name_key = next((name for name in st.session_state.results_dict if name.startswith(product_fluid) and 'aligned' in name), None)
+
+    # --- Action Buttons ---
+    col1, col2 = st.columns(2)
+    with col1:
+        aligned_button = st.button("Run Alignment", type="primary")
+
+    # --- Running Aligning ---
+    if aligned_button:
+        
+        # Get baseline slope
+        baseline_data = st.session_state.results_dict.get(baseline_fluid)
+        product_data = st.session_state.true_original_data.get(product_fluid)
+
+        if not baseline_data or not product_data:
+            st.error("Required data not found for baseline or product fluid.")
+            return
+
+        baseline_slope = baseline_data['bin_results'].get('slope')
+        if baseline_slope is None:
+            st.error(f"Cannot perform alignment: Baseline fluid '{baseline_fluid}' has no valid regression slope. Check Phase 1 results.")
+            return
+
+        with st.spinner(f"Running alignment on {product_fluid} to match {baseline_fluid} slope ({baseline_slope:.6f})..."):
+            
+            # 1. Run the alignment
+            aligned_name, aligned_data = align_to_match_baseline(
+                product_fluid,
+                product_data,
+                baseline_slope,
+                baseline_fluid
+            )
+
+            if aligned_name is None or aligned_data is None:
+                st.error(
+                    f"Alignment aborted: '{product_fluid}' does not have enough valid data for Alignment.")
+                return
+
+            if aligned_data:
+                # 2. Store the new aligned result
+                st.session_state.results_dict[aligned_name] = aligned_data
+
+                st.success(f"Alignment Complete. Plot now shows **{baseline_fluid}** and **{aligned_name}**.")
+            else:
+                st.error("Alignment failed. See logs above.")
+
+    # Display Baseline Slope
+    if st.session_state.get('results_dict') and baseline_fluid in st.session_state.true_original_data:
+        # Get the slope from the original (or currently displayed) baseline data
+        current_baseline_data = st.session_state.results_dict.get(baseline_fluid, st.session_state.true_original_data[baseline_fluid])
+        baseline_slope = current_baseline_data['bin_results'].get('slope')
+
+    aligned_name_key = next((name for name in st.session_state.results_dict if name.startswith(product_fluid) and 'aligned' in name), None)
+
+    if 'results_dict' in st.session_state and 'baseline_name' in st.session_state:
         plotter = MultiFluidDynamicPlot(
-            st.session_state.results_dict,  # Use the full dict
-            default_baseline=st.session_state.get('baseline_name')
+            st.session_state.results_dict,
+            default_baseline=st.session_state.baseline_name
         )
-
-
+        
+# ---------------- Main Application Flow ---------------- #
 # Phase selection
-phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Enhancement"], horizontal=True)
-
+phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Alignment"], horizontal=True)
 
 if phase == "Phase 1: Analysis":
     st.subheader("Upload Data for Analysis")
     
-    baseline_name = st.text_input("Enter Baseline Name")
-    baseline_files = st.file_uploader("Upload Baseline Data", accept_multiple_files=True)
-    fluid_name = st.text_input("Enter Product Name") 
-    fluid_files = st.file_uploader("Upload Product Data", accept_multiple_files=True)
+    # Baseline Name & Files
+    baseline_name = st.text_input("Enter Baseline Name", value=st.session_state.get('baseline_name_input', ''))
+    st.session_state['baseline_name_input'] = baseline_name
+
+    baseline_files = st.file_uploader("Upload Baseline Data", accept_multiple_files=True, key="baseline_files_uploader")
+    if baseline_files:
+        st.session_state['baseline_paths'] = save_uploaded_files(baseline_files)
+
+    # Product Fluid Name & Files
+    fluid_name = st.text_input("Enter Product Name", value=st.session_state.get('fluid_name_input', ''))
+    st.session_state['fluid_name_input'] = fluid_name
+
+    fluid_files = st.file_uploader("Upload Product Data", accept_multiple_files=True, key="fluid_files_uploader")
+    if fluid_files:
+        st.session_state['fluid_paths'] = save_uploaded_files(fluid_files)
+
     run_button = st.button("Analyse")
 
     if run_button:
         st.session_state.removed_points = {}
         st.session_state.removed_history = {}
 
-    if run_button:
-        if not baseline_name or not baseline_files or not fluid_name or not fluid_files:
+        # Get paths from session
+        baseline_paths = st.session_state.get('baseline_paths', [])
+        fluid_paths = st.session_state.get('fluid_paths', [])
+
+        if baseline_files:
+            baseline_paths = st.session_state['baseline_paths']
+        if fluid_files:
+            fluid_paths = st.session_state['fluid_paths']
+
+        if not baseline_name or not baseline_paths or not fluid_name or not fluid_paths:
             st.error("Provide names and files for both fluids.")
             st.session_state.analysis_run = False
         else:
             st.session_state.analysis_run = True
-            baseline_paths = save_uploaded_files(baseline_files)
-            fluid_paths = save_uploaded_files(fluid_files)
-            grouped_base, df_raw_base, df_base = process_fluid(baseline_name, baseline_paths)
-            grouped_fluid, df_raw_fluid, df_fluid = process_fluid(fluid_name, fluid_paths)
-            bin_base = analyze_bins(grouped_base, df_raw_base)
-            bin_fluid = analyze_bins(grouped_fluid, df_raw_fluid)
-        
-        # Store results
-            st.session_state.results_dict = {
-            baseline_name: {"grouped": grouped_base, "df_raw": df_raw_base, "bin_results": bin_base[CHOSEN_BIN_SIZE]},
-            fluid_name: {"grouped": grouped_fluid, "df_raw": df_raw_fluid, "bin_results": bin_fluid[CHOSEN_BIN_SIZE]}
-            }
-        
-        # Store TRUE original data for enhancement
-            st.session_state.true_original_data = {
-            baseline_name: {
-                "grouped": grouped_base.copy(),
-                "df_raw": df_raw_base.copy()
-            },
-            fluid_name: {
-                "grouped": grouped_fluid.copy(), 
-                "df_raw": df_raw_fluid.copy()
-            }
-        }
-        
-            st.session_state.baseline_name = baseline_name
-            st.session_state.analysis_run = True
-            plotter = MultiFluidDynamicPlot(st.session_state.results_dict, default_baseline=baseline_name)
+
+            # --- Processing ---
+            col_b, col_f = st.columns(2)
+            with col_b:
+                grouped_base, df_raw_base, df_base = process_fluid(baseline_name, baseline_paths, st.container())
+            with col_f:
+                grouped_fluid, df_raw_fluid, df_fluid = process_fluid(fluid_name, fluid_paths, st.container())
+
+            # --- Analysis ---
+            if grouped_base is None or grouped_fluid is None:
+                st.error("Analysis stopped due to data loading/processing error.")
+                st.session_state.analysis_run = False
+            else:
+                bin_base = analyze_bins(grouped_base, df_raw_base)
+                bin_fluid = analyze_bins(grouped_fluid, df_raw_fluid)
+
+                # Store results
+                st.session_state.results_dict = {
+                    baseline_name: {"grouped": grouped_base, "df_raw": df_raw_base, "bin_results": bin_base[CHOSEN_BIN_SIZE]},
+                    fluid_name: {"grouped": grouped_fluid, "df_raw": df_raw_fluid, "bin_results": bin_fluid[CHOSEN_BIN_SIZE]}
+                }
+
+                st.session_state.true_original_data = {
+                    baseline_name: {"grouped": grouped_base.copy(), "df_raw": df_raw_base.copy(), "bin_results": bin_base[CHOSEN_BIN_SIZE].copy()},
+                    fluid_name: {"grouped": grouped_fluid.copy(), "df_raw": df_raw_fluid.copy(), "bin_results": bin_fluid[CHOSEN_BIN_SIZE].copy()}
+                }
+
+                st.session_state.baseline_name = baseline_name
+                st.session_state.analysis_run = True
+                plotter = MultiFluidDynamicPlot({baseline_name: st.session_state.results_dict[baseline_name],fluid_name: st.session_state.results_dict[fluid_name]},default_baseline=baseline_name)
 
     elif st.session_state.get('analysis_run', False):
-        st.info("Analysis completed. Use the interactive plot to explore the data.")
+        st.info("Analysis Complete")
         if 'results_dict' in st.session_state and 'baseline_name' in st.session_state:
             plotter = MultiFluidDynamicPlot(st.session_state.results_dict, default_baseline=st.session_state.baseline_name)
 
 
-elif phase == "Phase 2: Enhancement":
-    enhancement_phase()
+if phase == "Phase 2: Alignment":
+    align_phase()
