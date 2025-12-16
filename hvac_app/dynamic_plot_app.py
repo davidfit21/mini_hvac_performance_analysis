@@ -263,4 +263,6 @@ class MultiFluidDynamicPlot:
             margin=dict(r=200), annotations=annotations
         )
 
-        st.plotly_chart(fig, width='stretch', config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
+        st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
+        #st.plotly_chart(fig, use_container_width=True)
+
