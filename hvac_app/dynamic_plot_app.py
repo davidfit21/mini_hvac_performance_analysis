@@ -30,7 +30,6 @@ class MultiFluidDynamicPlot:
     def _compute_metrics(self, baseline_name, filtered_data):
         processed = {}
 
-        # process baseline first
         baseline_pdata = filtered_data[baseline_name]
         X_base = baseline_pdata["X"].reshape(-1, 1)
         y_base = baseline_pdata["y"]
@@ -42,13 +41,12 @@ class MultiFluidDynamicPlot:
         processed[baseline_name] = {
             "X": X_base.flatten(),
             "y": y_base,
-            "y_pred": y_pred_base.tolist(),
+            "y_pred": y_pred_base,
             "r2": r2_base,
             "slope": slope_base,
             "cop_pct": None
         }
 
-        # then process other fluids
         for name, pdata in filtered_data.items():
             if name == baseline_name:
                 continue
@@ -60,15 +58,15 @@ class MultiFluidDynamicPlot:
                     X_arr, y_arr, window_length=self.window_length, polyorder=self.polyorder
                 )
             else:
-                # single point – use baseline slope
                 slope = slope_base
                 y_pred = y_arr.flatten()
+                r2 = None
 
             processed[name] = {
                 "X": X_arr.flatten(),
                 "y": y_arr,
-                "y_pred": y_pred.tolist(),
-                "r2": None if len(X_arr) < 2 else r2,
+                "y_pred": y_pred,
+                "r2": r2,
                 "slope": slope,
                 "cop_pct": None
             }
@@ -112,20 +110,16 @@ class MultiFluidDynamicPlot:
 
         # ---------------- Raw Data Table ---------------- #
         CHOSEN_BIN_SIZE = 1
-        st.subheader("Raw 1-Second Data Points per OAT Bin")
-
+        st.subheader("15-Minute COP Points per OAT Bin")
         all_oat_values = set()
         fluid_counts = {}
+
         for name in fluid_names:
-            df_raw = self.results_dict[name]["df_raw"]
-            df_raw_binned = cop_calculation_app.oat_binning(df_raw.copy(), bin_size=CHOSEN_BIN_SIZE, temp_col='T3')
-            raw_counts = df_raw_binned.groupby('oat_interval').size().reset_index(name=name)
-            counts_dict = {}
-            for _, row in raw_counts.iterrows():
-                oat_interval = row['oat_interval']
-                oat_value = int(float(oat_interval.split('-')[0])) if isinstance(oat_interval, str) and '-' in oat_interval else int(float(oat_interval))
-                counts_dict[oat_value] = row[name]
-                all_oat_values.add(oat_value)
+            grouped = self.results_dict[name]["grouped"]
+            grouped_binned = cop_calculation_app.oat_binning(grouped.copy(), bin_size=CHOSEN_BIN_SIZE, temp_col='avg_oat')
+            counts_dict = grouped_binned.groupby('oat_interval').size().to_dict()
+            for oat in counts_dict.keys():
+                all_oat_values.add(int(float(oat)) if isinstance(oat, (float, int, str)) else oat)
             fluid_counts[name] = counts_dict
 
         sorted_oat_values = sorted(all_oat_values)
@@ -140,9 +134,9 @@ class MultiFluidDynamicPlot:
         if table_data:
             st.dataframe(pd.DataFrame(table_data), width='stretch')
         else:
-            st.info("No raw data counts available.")
-        
-        # ---------------- Plot ---------------- #  
+            st.info("No 15-min COP points available.")
+
+        # ---------------- Plot ---------------- #
         all_X = np.concatenate([filtered_data[name]["X"] for name in fluid_names]) if fluid_names else []
         all_y = np.concatenate([filtered_data[name]["y"] for name in fluid_names]) if fluid_names else []
         xaxis_range = [min(all_X) - 2, max(all_X) + 2] if len(all_X) > 0 else None
@@ -157,76 +151,78 @@ class MultiFluidDynamicPlot:
             pdata = filtered_data[name]
             pproc = processed[name]
             color = colors[i % len(colors)]
+            r2_text = f" (R²={pproc['r2']:.3f})" if pproc['r2'] is not None else ""
+            legend_name = f"{name}{r2_text}"
 
-            # Determine x for line extension
-            x_min = pproc["X"].min() if len(pproc["X"]) > 0 else 0
-            x_max = pproc["X"].max() if len(pproc["X"]) > 0 else 0
-            x_ext = np.arange(x_min - extend_by, x_max + extend_by + 1, 1) if extend_lines else pproc["X"]
-
-            # Compute y for extended line
-            if len(pproc["X"]) >= 2:
-                y_ext = pproc["slope"] * (x_ext - pproc["X"][0]) + pproc["y_pred"][0]
-            else:  # single-point product
-                baseline_slope = processed[baseline_name]["slope"]
-                y_ext = baseline_slope * (x_ext - pproc["X"][0]) + pproc["y"][0]
-
-    # Add line with markers (no legend)
+            # ---------------- Original points ---------------- #
             fig.add_trace(go.Scatter(
-        x=x_ext,
-        y=y_ext,
-        mode="lines+markers",
-        line=dict(color=color, width=3),
-        marker=dict(size=6),
-        name=None,
-        showlegend=False,
-        hovertemplate="%{text}",
-        text=[f"OAT: {x:.1f}°C<br>COP: {y:.3f}<extra></extra>" for x, y in zip(x_ext, y_ext)]
-    ))
-
-            if name not in legend_added:
-                legend_name = f"{name} (R² = {pproc['r2']:.4f})" if pproc['r2'] is not None else name
-                fig.add_trace(go.Scatter(
-        x=[None],  # dummy point for legend only
-        y=[None],
-        mode="markers",
-        marker=dict(size=9, color=color, symbol='circle'),
-        name=legend_name,
-        showlegend=True
+                x=pproc["X"],
+                y=pproc["y"],
+                mode="markers",
+                marker=dict(size=6, color=color),
+                name=None if name in legend_added else legend_name,
+                showlegend=name not in legend_added,
+                hovertemplate="OAT: %{x:.1f}°C<br>COP: %{y:.3f}<extra></extra>"
             ))
-                legend_added.add(name)
 
+            # ---------------- Plot Regression Line ---------------- #
+            fig.add_trace(go.Scatter(
+                x=pproc["X"],
+                y=pproc["y_pred"],
+                mode="lines",
+                line=dict(color=color, width=3),
+                name=None,
+                showlegend=False
+                ))
+            
+            # Determine which points to plot
+            if extend_lines and len(pproc["X"]) > 0 and pproc["slope"] is not None:
+                x_min, x_max = pproc["X"].min(), pproc["X"].max()
+                x_ext_left = np.arange(x_min - extend_by, x_min, 1)
+                x_ext_right = np.arange(x_max + 1, x_max + extend_by + 1, 1)
+                x_plot = np.concatenate([x_ext_left, pproc["X"], x_ext_right])
+                y_plot = pproc["slope"] * (x_plot - pproc["X"][0]) + pproc["y_pred"][0]
+            else:
+                x_plot = pproc["X"]
+                y_plot = pproc["y_pred"]
 
-            if len(pproc["X"]) == 1 and extend_lines:
-                pproc["slope"] = baseline_slope
-                pproc["y_pred"] = y_ext.tolist()
-                pproc["r2"] = 1.0  # perfect fit for extended line
-                c = y_ext[0] - pproc["slope"] * x_ext[0]
-                equations_text.append(f"{name}: y = {pproc['slope']:.3f}x + {c:.3f}")
-
-            # Update COP % difference for all extended lines
-            if name != baseline_name and len(x_ext) > 0:
+            # Compute COP % difference for non-baseline fluids
+            if name != baseline_name and len(x_plot) > 0:
                 df_base = pd.DataFrame({
                     "oat_interval": processed[baseline_name]["X"],
                     "cop": processed[baseline_name]["y"]
-        })
-                df_fluid_ext = pd.DataFrame({
-            "oat_interval": x_ext,
-            "cop": y_ext
-        })
-                pproc["cop_pct"] = cop_percentage_change(df_fluid_ext, df_base)
+                })
+                df_fluid = pd.DataFrame({
+                    "oat_interval": x_plot,
+                    "cop": y_plot
+                })
+                pproc["cop_pct"] = cop_percentage_change(df_fluid, df_base)
 
-            # Equation display for multi-point fluids
+            # Plot line + points
+            fig.add_trace(go.Scatter(
+                x=x_plot,
+                y=y_plot,
+                mode="lines",#+markers",
+                line=dict(color=color, width=3),
+                marker=dict(size=6, color=color),
+                name=None if name in legend_added else legend_name,
+                showlegend=False,#name not in legend_added,
+                hovertemplate="OAT: %{x:.1f}°C<br>COP: %{y:.3f}<extra></extra>"
+            ))
+
+            legend_added.add(name)
+
+            # ---------------- Equations and Performance ---------------- #
             if len(pproc["X"]) >= 2 and pproc["slope"] is not None:
                 m = pproc["slope"]
-                c = y_ext[0] - m * x_ext[0]
+                c = pproc["y_pred"][0] - m * pproc["X"][0]
                 equations_text.append(f"{name}: y = {m:.3f}x + {c:.3f}")
 
-            # Performance text
             if name != baseline_name and pproc.get("cop_pct") is not None:
                 symbol = "+" if pproc["cop_pct"] > 0 else ""
                 performance_text.append(f"{name}: ΔCOP = {symbol}{pproc['cop_pct']:.1f}%")
 
-        # Annotations
+        # ---------------- Annotations ---------------- #
         annotations = []
         if equations_text:
             annotations.append(dict(
