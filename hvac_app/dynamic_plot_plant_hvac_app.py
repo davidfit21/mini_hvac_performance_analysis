@@ -231,4 +231,5 @@ class PlantMultiFluidDynamicPlot:
             legend=dict(orientation="v", yanchor="top", y=0.95, xanchor="left", x=1.02, font=dict(color="black", size=12)),
             margin=dict(r=200), annotations=annotations
         )
-        st.plotly_chart(fig, width='stretch', config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
+        st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
+

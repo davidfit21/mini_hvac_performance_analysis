@@ -14,7 +14,6 @@ def run():
     from hvac_app import preprocessing_app, cop_calculation_app, regression_app
     from hvac_app.dynamic_plot_app import MultiFluidDynamicPlot
     from hvac_app.enhance_mini_hvac_app import align_to_match_baseline
-    st.header("Mini-HVAC Analysis")
     col1, col2 = st.columns([5,1])
     with col1:
         st.subheader("Mini-HVAC Performance Analysis")

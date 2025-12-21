@@ -16,8 +16,7 @@ def run():
     from sklearn.metrics import r2_score
     from sklearn.linear_model import LinearRegression
     import re
-    # ---------------- Page Header ---------------- #
-    st.header("Plant-HVAC Analysis")
+
     col1, col2 = st.columns([5, 1])
     with col1:
         st.subheader("Plant-HVAC Performance Analysis")
