@@ -1,13 +1,16 @@
 import streamlit as st
 import subprocess
 
+# Must be first Streamlit command
+st.set_page_config(page_title="HVAC Launcher", layout="wide", page_icon="🏭")  # use emoji or hosted URL
+
+# UI
 col1, col2 = st.columns([5,1])
 with col1:
     st.title("HVAC Analysis Launcher")
 with col2:
-    st.image("htms_logo.jpg", width=150)
+    st.image("htms_logo.jpg", width=150)  # can use local image here
 
-st.set_page_config(page_title="HVAC Launcher", layout="wide")#, page_icon="htms_logo.jpg")
 option = st.selectbox("Choose Analysis:", ["Mini-HVAC Analysis", "Plant-HVAC Analysis"])
 
 if st.button("Run"):
