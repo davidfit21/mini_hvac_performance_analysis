@@ -2,17 +2,6 @@ import numpy as np
 import pandas as pd
 from scipy.stats import zscore
 
-#def add_datetime(df):
-#    """Combines Date and Time columns, converts to datetime objects, and sets the index."""
-#    df['Datetime'] = pd.to_datetime(df['Date'] + ' ' + df['Time'], 
-#                                   format='%d/%m/%Y %H:%M:%S')
-#    df = df.set_index('Datetime')
-#    df = df.drop(columns=['Date', 'Time'])
-#    return df
-
-#def resample_to_minute(df, columns=['Energy1','Energy2','T3']):
-    #return df.groupby('1_min_helper')[columns].mean().reset_index()
-
 def add_datetime(df):
     """Combines Date and Time columns, converts to datetime objects, and sets the index."""
     

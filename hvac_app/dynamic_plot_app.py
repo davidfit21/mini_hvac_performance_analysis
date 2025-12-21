@@ -132,9 +132,7 @@ class MultiFluidDynamicPlot:
             table_data.append(row)
 
         if table_data:
-            #st.dataframe(pd.DataFrame(table_data), width='stretch')
-            st.dataframe(pd.DataFrame(table_data), use_container_width=True)
-
+            st.dataframe(pd.DataFrame(table_data), width='stretch')
         else:
             st.info("No 15-min COP points available.")
 
@@ -263,6 +261,4 @@ class MultiFluidDynamicPlot:
             margin=dict(r=200), annotations=annotations
         )
 
-        st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
-        #st.plotly_chart(fig, use_container_width=True)
-
+        st.plotly_chart(fig, width='stretch', config={'doubleClick': 'reset+autosize', 'displayModeBar': True})

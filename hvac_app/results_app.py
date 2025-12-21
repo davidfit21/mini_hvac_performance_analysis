@@ -9,15 +9,7 @@ import platform
 import subprocess
 
 def generate_plot_points_table(cop_results):
-    """
-    Generates a table per fluid with the exact points used for plotting.
-    Each table contains:
-    - 'OAT (°C)': the binned temperature values
-    - 'COP': the corresponding COP values (smoothed if used)
-    
-    Returns:
-        tables: dict of DataFrames, one per fluid
-    """
+
     tables = {}
     for fluid, res in cop_results.items():
         df = pd.DataFrame({

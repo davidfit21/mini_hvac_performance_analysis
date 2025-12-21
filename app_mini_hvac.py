@@ -6,7 +6,7 @@ import tempfile
 import numpy as np
 from hvac_app import preprocessing_app, cop_calculation_app, regression_app
 from hvac_app.dynamic_plot_app import MultiFluidDynamicPlot
-from hvac_app.enhance_app import align_to_match_baseline
+from hvac_app.enhance_mini_hvac_app import align_to_match_baseline
 
 # ---------------- Session State ---------------- #
 if 'analysis_run' not in st.session_state:
@@ -18,12 +18,8 @@ if 'aligned_data' not in st.session_state:
 if 'current_view' not in st.session_state:
     st.session_state.current_view = "original"
 
-# Set page title and favicon (browser tab / URL bar)
-st.set_page_config(
-    page_title="HVAC Performance Analysis",
-    layout="wide",
-    page_icon="htms_logo.jpg"
-)
+# ---------------- Config ---------------- #
+st.set_page_config(page_title="Mini-HVAC",layout="wide",page_icon="htms_logo.jpg")
 
 col1, col2 = st.columns([5,1])
 with col1:
@@ -155,7 +151,7 @@ def analyze_bins(grouped, df_raw, st_container=None):
 
 # ---------------- Phase 2 ---------------- #
 def align_phase():
-    st.subheader("Data Enhancement using Alignment")
+    st.subheader("Alignment")
     
     if 'results_dict' not in st.session_state or 'baseline_name' not in st.session_state:
         st.warning("Please run Phase 1 analysis first to load fluid data.")
@@ -182,16 +178,11 @@ def align_phase():
     )
     
     aligned_name_key = next((name for name in st.session_state.results_dict if name.startswith(product_fluid) and 'aligned' in name), None)
-
-    # --- Action Buttons ---
     col1, col2 = st.columns(2)
     with col1:
         aligned_button = st.button("Run Alignment", type="primary")
 
-    # --- Running Aligning ---
     if aligned_button:
-        
-        # Get baseline slope
         baseline_data = st.session_state.results_dict.get(baseline_fluid)
         product_data = st.session_state.true_original_data.get(product_fluid)
 
@@ -204,7 +195,7 @@ def align_phase():
             st.error(f"Cannot perform alignment: Baseline fluid '{baseline_fluid}' has no valid regression slope. Check Phase 1 results.")
             return
 
-        with st.spinner(f"Running alignment on {product_fluid} to match {baseline_fluid} slope ({baseline_slope:.6f})..."):
+        with st.spinner(f"Running alignment on {product_fluid} to match {baseline_fluid}..."):
             
             # 1. Run the alignment
             aligned_name, aligned_data = align_to_match_baseline(
@@ -222,7 +213,6 @@ def align_phase():
             if aligned_data:
                 # 2. Store the new aligned result
                 st.session_state.results_dict[aligned_name] = aligned_data
-
                 st.success(f"Alignment Complete. Plot now shows **{baseline_fluid}** and **{aligned_name}**.")
             else:
                 st.error("Alignment failed. See logs above.")
@@ -319,7 +309,7 @@ if phase == "Phase 1: Analysis":
         st.info("Analysis Complete")
         if 'results_dict' in st.session_state and 'baseline_name' in st.session_state:
             plotter = MultiFluidDynamicPlot(st.session_state.results_dict, default_baseline=st.session_state.baseline_name)
-
+        
 
 if phase == "Phase 2: Alignment":
     align_phase()
