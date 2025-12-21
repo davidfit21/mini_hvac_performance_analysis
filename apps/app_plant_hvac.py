@@ -234,7 +234,8 @@ def run():
                         fluid_name: oat_density_table(fluid_df_filtered)
                     }
                     st.subheader("1-Minute COP Points per OAT Bin")
-                    st.dataframe(build_horizontal_oat_table(density), width="stretch")
+                    #st.dataframe(build_horizontal_oat_table(density), width="stretch")
+                    st.dataframe(build_horizontal_oat_table(density), width=2000)
                     st.session_state.plotter = PlantMultiFluidDynamicPlot(combined_results, default_baseline=baseline_name)
 
     # ---------------- Phase 2 ---------------- #
