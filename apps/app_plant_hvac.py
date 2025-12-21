@@ -1,21 +1,21 @@
 # app_plant_hvac.py
-import streamlit as st
-import pandas as pd
-import numpy as np
-from pathlib import Path
-import tempfile
-from hvac_app.dynamic_plot_plant_hvac_app import PlantMultiFluidDynamicPlot
-from hvac_app.enhance_plant_hvac_app import align_to_match_baseline_plant
-from scipy.signal import savgol_filter
-from sklearn.metrics import r2_score
-from sklearn.linear_model import LinearRegression
-import re
 
 TONS_CONSTANT = 3.51685
 WINDOW_LENGTH = 5
 POLYORDER = 2
 
 def run():
+    import streamlit as st
+    import pandas as pd
+    import numpy as np
+    from pathlib import Path
+    import tempfile
+    from hvac_app.dynamic_plot_plant_hvac_app import PlantMultiFluidDynamicPlot
+    from hvac_app.enhance_plant_hvac_app import align_to_match_baseline_plant
+    from scipy.signal import savgol_filter
+    from sklearn.metrics import r2_score
+    from sklearn.linear_model import LinearRegression
+    import re
     # ---------------- Page Header ---------------- #
     st.header("Plant-HVAC Analysis")
     col1, col2 = st.columns([5, 1])

@@ -1,18 +1,19 @@
 # app_streamlit.py
-import streamlit as st
-import pandas as pd
-from pathlib import Path
-import tempfile
-import numpy as np
-from hvac_app import preprocessing_app, cop_calculation_app, regression_app
-from hvac_app.dynamic_plot_app import MultiFluidDynamicPlot
-from hvac_app.enhance_mini_hvac_app import align_to_match_baseline
+
 
 COLUMNS = ['Date', 'Time', 'Energy1', 'Energy2', 'T1', 'T2', 'T3', 'T4']
 CHOSEN_BIN_SIZE = 1
 
 def run():
     # ---------------- Page Header ---------------- #
+    import streamlit as st
+    import pandas as pd
+    from pathlib import Path
+    import tempfile
+    import numpy as np
+    from hvac_app import preprocessing_app, cop_calculation_app, regression_app
+    from hvac_app.dynamic_plot_app import MultiFluidDynamicPlot
+    from hvac_app.enhance_mini_hvac_app import align_to_match_baseline
     st.header("Mini-HVAC Analysis")
     col1, col2 = st.columns([5,1])
     with col1:
