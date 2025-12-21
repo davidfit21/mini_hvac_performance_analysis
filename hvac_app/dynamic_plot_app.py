@@ -132,8 +132,10 @@ class MultiFluidDynamicPlot:
             table_data.append(row)
 
         if table_data:
-            with st.container():
-                st.dataframe(pd.DataFrame(table_data))
+        #    with st.container():
+        #        st.dataframe(pd.DataFrame(table_data))
+
+            st.dataframe(pd.DataFrame(table_data), width=2000)
 
         else:
             st.info("No 15-min COP points available.")
