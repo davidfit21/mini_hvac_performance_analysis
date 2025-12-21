@@ -7,7 +7,7 @@ with col1:
 with col2:
     st.image("htms_logo.jpg", width=150)
 
-st.set_page_config(page_title="HVAC Launcher", layout="wide", page_icon="htms_logo.jpg")
+st.set_page_config(page_title="HVAC Launcher", layout="wide")#, page_icon="htms_logo.jpg")
 option = st.selectbox("Choose Analysis:", ["Mini-HVAC Analysis", "Plant-HVAC Analysis"])
 
 if st.button("Run"):
