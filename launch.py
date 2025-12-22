@@ -2,8 +2,8 @@ import streamlit as st
 
 st.set_page_config(
     page_title="Plant-HVAC",
-    layout="wide"
-)
+    layout="wide",
+    page_icon="htms_logo.jpg")
 
 from apps import app_mini_hvac, app_plant_hvac
 

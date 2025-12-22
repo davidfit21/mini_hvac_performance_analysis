@@ -193,16 +193,13 @@ def run():
         if key not in st.session_state:
             st.session_state[key] = default
 
-    #st.set_page_config(page_title="Plant-HVAC", layout="wide", page_icon="htms_logo.jpg")
-    #col1, col2 = st.columns([5,1])
-    #with col1: st.title("Plant-HVAC Performance Analysis")
-    #with col2: st.image("htms_logo.jpg", width=150)
-
+    st.title("Plant-HVAC Performance Analysis")
+    
     phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Alignment"], horizontal=True)
 
     # -------- Phase 1 --------
     if phase == "Phase 1: Analysis":
-        st.subheader("Upload Baseline and Product Fluids")
+        st.subheader("Upload Data for Analysis")
         baseline_name = st.text_input("Enter Baseline Name", value=st.session_state.get('baseline_name_input', ''))
         st.session_state['baseline_name_input'] = baseline_name
         baseline_files = st.file_uploader("Upload Baseline Data", accept_multiple_files=True, key="baseline_uploader")

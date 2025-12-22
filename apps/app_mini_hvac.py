@@ -175,6 +175,8 @@ def run():
         st.session_state.aligned_data = {}
     if 'current_view' not in st.session_state:
         st.session_state.current_view = "original"
+    
+    st.title("Mini-HVAC Performance Analysis")
 
     #st.set_page_config(page_title="Mini-HVAC", layout="wide", page_icon="htms_logo.jpg")
 
