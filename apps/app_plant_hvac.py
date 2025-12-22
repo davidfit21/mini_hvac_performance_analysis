@@ -229,8 +229,7 @@ def run():
             density = {baseline_name: oat_density_table(baseline_df_filtered),
                        fluid_name: oat_density_table(fluid_df_filtered)}
             st.subheader("1-Minute COP Points per OAT Bin")
-            #st.dataframe(build_horizontal_oat_table(density), width="stretch")
-            st.dataframe(build_horizontal_oat_table(density), width=800)  # adjust pixels as needed
+            st.dataframe(build_horizontal_oat_table(density), width=1200)  # adjust pixels as needed
 
             st.session_state.plotter = PlantMultiFluidDynamicPlot(combined_results, default_baseline=baseline_name)
 
