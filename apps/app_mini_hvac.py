@@ -176,7 +176,12 @@ def run():
     if 'current_view' not in st.session_state:
         st.session_state.current_view = "original"
     
-    st.title("Mini-HVAC Performance Analysis")
+    #st.title("Mini-HVAC Performance Analysis")
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.title("Mini-HVAC Performance Analysis")   # or Plant-HVAC for the other file
+    with col2:
+        st.image("htms_logo.jpg", width=150)
 
     #st.set_page_config(page_title="Mini-HVAC", layout="wide", page_icon="htms_logo.jpg")
 

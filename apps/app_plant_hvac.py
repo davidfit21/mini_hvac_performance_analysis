@@ -193,7 +193,13 @@ def run():
         if key not in st.session_state:
             st.session_state[key] = default
 
-    st.title("Plant-HVAC Performance Analysis")
+    #st.title("Plant-HVAC Performance Analysis")
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.title("Plant-HVAC Performance Analysis")   # or Plant-HVAC for the other file
+    with col2:
+        st.image("htms_logo.jpg", width=150)
+
     
     phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Alignment"], horizontal=True)
 
