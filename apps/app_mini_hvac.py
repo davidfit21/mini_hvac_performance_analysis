@@ -176,7 +176,7 @@ def run():
     if 'current_view' not in st.session_state:
         st.session_state.current_view = "original"
 
-    st.set_page_config(page_title="Mini-HVAC", layout="wide", page_icon="htms_logo.jpg")
+    #st.set_page_config(page_title="Mini-HVAC", layout="wide", page_icon="htms_logo.jpg")
 
     # Page header
     #col1, col2 = st.columns([5,1])
