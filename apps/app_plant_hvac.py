@@ -199,7 +199,6 @@ def run():
         st.title("Plant-HVAC Performance Analysis")   # or Plant-HVAC for the other file
     with col2:
         st.image("htms_logo.jpg", width=150)
-
     
     phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Alignment"], horizontal=True)
 
@@ -230,7 +229,8 @@ def run():
             density = {baseline_name: oat_density_table(baseline_df_filtered),
                        fluid_name: oat_density_table(fluid_df_filtered)}
             st.subheader("1-Minute COP Points per OAT Bin")
-            st.dataframe(build_horizontal_oat_table(density), width="stretch")
+            #st.dataframe(build_horizontal_oat_table(density), width="stretch")
+            st.dataframe(build_horizontal_oat_table(density), width=800)  # adjust pixels as needed
 
             st.session_state.plotter = PlantMultiFluidDynamicPlot(combined_results, default_baseline=baseline_name)
 

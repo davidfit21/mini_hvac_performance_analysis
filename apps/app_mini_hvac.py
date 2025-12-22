@@ -183,15 +183,6 @@ def run():
     with col2:
         st.image("htms_logo.jpg", width=150)
 
-    #st.set_page_config(page_title="Mini-HVAC", layout="wide", page_icon="htms_logo.jpg")
-
-    # Page header
-    #col1, col2 = st.columns([5,1])
-    #with col1:
-    #    st.title("Mini-HVAC Performance Analysis")
-    #with col2:
-    #    st.image("htms_logo.jpg", width=150)
-
     # Phase selection
     phase = st.radio("Select Phase:", ["Phase 1: Analysis", "Phase 2: Alignment"], horizontal=True)
 
