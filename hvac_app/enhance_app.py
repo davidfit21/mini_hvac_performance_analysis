@@ -24,14 +24,6 @@ def align_to_match_baseline(fluid_name, fluid_data, baseline_slope, baseline_nam
 
     st.write(f"### Aligning {fluid_name} to match {baseline_name}")
 
-    # ---------------- Original static progress (commented out) ---------------- #
-    # progress_bar = st.progress(0)
-    # status_text = st.empty()
-    # for iteration in range(1, MAX_ITERATIONS + 1):
-    #     if iteration % 1000 == 0:
-    #         progress_bar.progress(min(iteration / MAX_ITERATIONS, 1.0))
-    #         status_text.text(f"Iteration {iteration}/{MAX_ITERATIONS}")
-
     # ---------------- Dynamic AI-style progress ---------------- #
     progress_bar = st.progress(0)
     status_text = st.empty()
@@ -97,7 +89,6 @@ def align_to_match_baseline(fluid_name, fluid_data, baseline_slope, baseline_nam
             perfect_match_found = True
             break
 
-        # Combined score for AI-style evaluation
         slope_score = max(0, 1 - (diff / 0.01))
         r2_score = min(1.0, r2_aligned)
         combined_score = 0.6 * slope_score + 0.4 * r2_score

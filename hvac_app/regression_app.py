@@ -15,10 +15,6 @@ def linear_regression(x, y):
     return y_pred, slope, intercept, r2, equation
 
 def smoothed_linear_regression(X, y, window_length=5, polyorder=2):
-    """
-    Perform linear regression on smoothed data.
-    """
-    # Convert to numpy arrays and ensure proper shapes
     X = np.array(X).reshape(-1, 1) if X.ndim == 1 else np.array(X)
     y = np.array(y).flatten()
     

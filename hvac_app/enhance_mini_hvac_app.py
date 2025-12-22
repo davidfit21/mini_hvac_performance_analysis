@@ -88,7 +88,6 @@ def align_to_match_baseline(fluid_name, fluid_data, baseline_slope, baseline_nam
             perfect_match_found = True
             break
 
-        # Combined score for AI-style evaluation
         slope_score = max(0, 1 - (diff / 0.01))
         r2_score = min(1.0, r2_aligned)
         combined_score = 0.6 * slope_score + 0.4 * r2_score

@@ -26,7 +26,7 @@ class PlantMultiFluidDynamicPlot:
                     slope = d["bin_results"]["slope"]
                     intercept = d["bin_results"]["y_pred"][0] if len(d["bin_results"]["y_pred"])>0 else 0
                     r2 = d["bin_results"]["r2"]
-                    y_fit = slope*X + intercept  # always compute explicitly
+                    y_fit = slope*X + intercept
                 elif "oat" in d and "cop" in d:
                     X = np.array(d["oat"])
                     y = np.array(d["cop"])
@@ -232,4 +232,3 @@ class PlantMultiFluidDynamicPlot:
             margin=dict(r=200), annotations=annotations
         )
         st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
-

@@ -3,8 +3,6 @@ import pandas as pd
 from scipy.stats import zscore
 
 def add_datetime(df):
-    """Combines Date and Time columns, converts to datetime objects, and sets the index."""
-    
     # Check if Date is already a datetime
     if pd.api.types.is_datetime64_any_dtype(df['Date']):
         # Already datetime - just set as index and drop original columns
@@ -17,15 +15,12 @@ def add_datetime(df):
                                        format='%d/%m/%Y %H:%M:%S')
         df = df.set_index('Datetime')
         df = df.drop(columns=['Date', 'Time'])
-    
-    #df = df.sort_index()
-    return df
 
+    return df
 
 def resample_to_minute(df):
     """Resamples the DataFrame to 1-minute intervals (mean)."""
     df_1min = df.resample('1min').mean()
-    #df_1min['1_min_helper'] = df_1min.index.floor('1min')
     df_1min['1_min_helper'] = df_1min.index.floor('1min')
     
     return df_1min

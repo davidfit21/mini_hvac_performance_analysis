@@ -1,7 +1,7 @@
 # hvac_analyzer/cop_calculation.py
 import pandas as pd
 import numpy as np
-from . import preprocessing_app # Use relative import
+from . import preprocessing_app # Using relative import
 
 import numpy as np
 import pandas as pd
@@ -11,8 +11,6 @@ def oat_binning(df, bin_size, temp_col='avg_oat'):
     df['count_per_bin'] = df.groupby('oat_interval')[temp_col].transform('count')
     return df
 
-
-# Keep your other functions the same...
 def compute_delta_energy(df):
     """
     Compute delta energy for both energy columns.
@@ -25,7 +23,6 @@ def compute_delta_energy(df):
 def remove_outliers_zscore(df: pd.DataFrame, column: str, threshold: float = 3.0) -> pd.DataFrame:
 
     return preprocessing_app.remove_outliers_zscore(df, column, threshold)
-
 
 def cop_percentage_change(df_fluid: pd.DataFrame, df_base: pd.DataFrame) -> float | None:
 

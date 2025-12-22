@@ -132,9 +132,6 @@ class MultiFluidDynamicPlot:
             table_data.append(row)
 
         if table_data:
-        #    with st.container():
-        #        st.dataframe(pd.DataFrame(table_data))
-
             st.dataframe(pd.DataFrame(table_data), width=2000)
 
         else:
@@ -266,4 +263,3 @@ class MultiFluidDynamicPlot:
         )
 
         st.plotly_chart(fig, use_container_width=True, config={'doubleClick': 'reset+autosize', 'displayModeBar': True})
-
